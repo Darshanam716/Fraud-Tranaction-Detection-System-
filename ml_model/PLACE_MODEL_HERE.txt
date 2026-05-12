@@ -1,0 +1,12 @@
+PLACE YOUR fraud_model.pkl FILE IN THIS FOLDER.
+
+The file should be the pickled RandomForestClassifier saved from your notebook:
+
+    import pickle
+    with open('fraud_model.pkl', 'wb') as f:
+        pickle.dump(rf_model, f)
+
+After placing the file, this folder should contain:
+    ml_model/
+        fraud_model.pkl   ← your trained model
+        PLACE_MODEL_HERE.txt

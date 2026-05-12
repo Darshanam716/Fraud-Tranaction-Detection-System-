@@ -1,0 +1,169 @@
+{% extends 'detector/base.html' %}
+{% block title %}Dashboard — FraudGuard AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-gauge-high me-2" style="color:#4f46e5"></i>Dashboard</h2>
+  <p class="text-muted">Real-time overview of fraud detection activity</p>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card stat-card total p-3">
+      <div class="d-flex align-items-center gap-3">
+        <div style="background:#ede9fe;border-radius:10px;padding:12px;">
+          <i class="fas fa-database fa-lg" style="color:#4f46e5"></i>
+        </div>
+        <div>
+          <div class="text-muted small">Total Transactions</div>
+          <div class="fs-3 fw-bold">{{ total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card fraud p-3">
+      <div class="d-flex align-items-center gap-3">
+        <div style="background:#fee2e2;border-radius:10px;padding:12px;">
+          <i class="fas fa-triangle-exclamation fa-lg" style="color:#ef4444"></i>
+        </div>
+        <div>
+          <div class="text-muted small">Fraudulent</div>
+          <div class="fs-3 fw-bold text-danger">{{ fraud_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card safe p-3">
+      <div class="d-flex align-items-center gap-3">
+        <div style="background:#dcfce7;border-radius:10px;padding:12px;">
+          <i class="fas fa-circle-check fa-lg" style="color:#22c55e"></i>
+        </div>
+        <div>
+          <div class="text-muted small">Legitimate</div>
+          <div class="fs-3 fw-bold text-success">{{ legit_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts + Recent -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-3 h-100">
+      <h6 class="fw-semibold mb-3">Distribution</h6>
+      {% if total > 0 %}
+        <canvas id="donutChart" height="200"></canvas>
+        <div class="mt-3 text-center text-muted small">
+          Fraud Rate: <strong class="text-danger">{{ fraud_pct }}%</strong>
+        </div>
+      {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-chart-pie fa-3x mb-2" style="opacity:.3"></i>
+          <p>No data yet</p>
+          <a href="{% url 'predict_single' %}" class="btn btn-sm btn-primary">Make a prediction</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-semibold mb-0">Recent Predictions</h6>
+        <a href="{% url 'history' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      {% if recent %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>#</th><th>Amount</th><th>Time</th><th>Confidence</th><th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in recent %}
+              <tr>
+                <td class="text-muted small">{{ p.id }}</td>
+                <td>${{ p.amount|floatformat:2 }}</td>
+                <td class="text-muted small">{{ p.created_at|date:"M d, H:i" }}</td>
+                <td>
+                  <div class="progress" style="height:6px;width:80px;">
+                    <div class="progress-bar {% if p.prediction == 1 %}progress-bar-fraud{% else %}progress-bar-safe{% endif %}"
+                         style="width:{{ p.confidence }}%"></div>
+                  </div>
+                  <small class="text-muted">{{ p.confidence }}%</small>
+                </td>
+                <td>
+                  {% if p.prediction == 1 %}
+                    <span class="badge-fraud"><i class="fas fa-xmark me-1"></i>FRAUD</span>
+                  {% else %}
+                    <span class="badge-safe"><i class="fas fa-check me-1"></i>LEGIT</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted text-center py-3">No predictions yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div class="row g-3 mt-2">
+  <div class="col-md-6">
+    <a href="{% url 'predict_single' %}" class="card p-3 text-decoration-none d-flex flex-row align-items-center gap-3" style="color:inherit;">
+      <div style="background:#ede9fe;border-radius:10px;padding:14px;">
+        <i class="fas fa-magnifying-glass-dollar fa-xl" style="color:#4f46e5"></i>
+      </div>
+      <div>
+        <div class="fw-semibold">Check Single Transaction</div>
+        <div class="text-muted small">Enter V1-V28 features manually</div>
+      </div>
+      <i class="fas fa-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <a href="{% url 'predict_bulk' %}" class="card p-3 text-decoration-none d-flex flex-row align-items-center gap-3" style="color:inherit;">
+      <div style="background:#fef3c7;border-radius:10px;padding:14px;">
+        <i class="fas fa-file-csv fa-xl" style="color:#d97706"></i>
+      </div>
+      <div>
+        <div class="fw-semibold">Bulk CSV Analysis</div>
+        <div class="text-muted small">Upload multiple transactions at once</div>
+      </div>
+      <i class="fas fa-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if total > 0 %}
+<script>
+const ctx = document.getElementById('donutChart').getContext('2d');
+new Chart(ctx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Legitimate', 'Fraudulent'],
+    datasets: [{
+      data: [{{ legit_count }}, {{ fraud_count }}],
+      backgroundColor: ['#22c55e', '#ef4444'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom' } },
+    cutout: '65%',
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

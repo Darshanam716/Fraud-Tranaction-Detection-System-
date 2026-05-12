@@ -1,0 +1,118 @@
+{% extends 'detector/base.html' %}
+{% block title %}Bulk CSV Upload — FraudGuard AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fas fa-file-csv me-2" style="color:#d97706"></i>Bulk Transaction Analysis</h2>
+  <p class="text-muted">Upload a CSV file to analyze multiple transactions at once.</p>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Upload card -->
+  <div class="col-md-5">
+    <div class="card p-4 h-100">
+      <h6 class="fw-semibold mb-3">Upload CSV</h6>
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          {{ form.csv_file }}
+          <div class="form-text">{{ form.csv_file.help_text }}</div>
+        </div>
+        <button type="submit" class="btn btn-warning w-100 fw-semibold">
+          <i class="fas fa-upload me-2"></i>Analyze File
+        </button>
+      </form>
+
+      <hr/>
+      <h6 class="fw-semibold mb-2">Required CSV Format</h6>
+      <code class="small d-block bg-light p-2 rounded" style="font-size:.75rem;">
+        Time,V1,V2,...,V28,Amount<br>
+        0,-1.36,0.47,...,0.13,149.62<br>
+        ...
+      </code>
+      <p class="text-muted small mt-2 mb-0">Columns must be in this exact order. No Class column needed.</p>
+    </div>
+  </div>
+
+  <!-- Summary card -->
+  {% if results %}
+  <div class="col-md-7">
+    <div class="card p-4 h-100">
+      <h6 class="fw-semibold mb-3">Batch Summary</h6>
+      <div class="row g-2 mb-3">
+        <div class="col-4">
+          <div class="bg-light rounded p-3 text-center">
+            <div class="fw-bold fs-4">{{ results|length }}</div>
+            <div class="text-muted small">Processed</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="rounded p-3 text-center" style="background:#fee2e2;">
+            <div class="fw-bold fs-4 text-danger">{{ fraud_in_batch }}</div>
+            <div class="text-muted small">Fraudulent</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="rounded p-3 text-center" style="background:#dcfce7;">
+            <div class="fw-bold fs-4 text-success">{{ results|length|add:"-"|add:fraud_in_batch }}</div>
+            <div class="text-muted small">Legitimate</div>
+          </div>
+        </div>
+      </div>
+      {% if errors %}
+        <div class="alert alert-warning py-2">
+          <strong>Errors:</strong>
+          <ul class="mb-0 small">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if results %}
+<!-- Results table -->
+<div class="card p-3">
+  <h6 class="fw-semibold mb-3">Transaction Results</h6>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm">
+      <thead class="table-light">
+        <tr>
+          <th>Row</th>
+          <th>Time</th>
+          <th>Amount</th>
+          <th>Fraud Prob.</th>
+          <th>Confidence</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        <tr {% if r.prediction == 1 %}style="background:#fff5f5;"{% endif %}>
+          <td class="text-muted">#{{ r.row }}</td>
+          <td>{{ r.time }}</td>
+          <td>${{ r.amount }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:6px;">
+                <div class="progress-bar progress-bar-fraud" style="width:{{ r.fraud_probability }}%;"></div>
+              </div>
+              <small>{{ r.fraud_probability }}%</small>
+            </div>
+          </td>
+          <td><small>{{ r.confidence }}%</small></td>
+          <td>
+            {% if r.prediction == 1 %}
+              <span class="badge-fraud"><i class="fas fa-xmark me-1"></i>FRAUD</span>
+            {% else %}
+              <span class="badge-safe"><i class="fas fa-check me-1"></i>LEGIT</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
